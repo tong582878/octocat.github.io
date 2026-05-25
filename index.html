@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑白猫资本 | Black & White Cat Capital</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- 3D Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader-content">
+            <div class="cat-logo">
+                <span class="cat-icon">🐱</span>
+                <span class="cat-icon黑白">🐈‍⬛</span>
+            </div>
+            <div class="loader-text">黑白猫资本</div>
+            <div class="loader-sub">BLACK & WHITE CAT CAPITAL</div>
+            <div class="loader-bar">
+                <div class="loader-fill"></div>
+            </div>
+            <div class="loader-status">正在初始化智能驾驶舱...</div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="main-nav">
+        <div class="nav-left">
+            <div class="logo-mark">
+                <span class="logo-cat">🐱🐈‍⬛</span>
+                <span class="logo-text">黑白猫资本</span>
+                <span class="logo-badge">CAPITAL</span>
+            </div>
+        </div>
+        <div class="nav-center">
+            <button class="nav-btn active" data-view="dashboard">
+                <span class="nav-icon">◈</span> 智能驾驶舱
+            </button>
+            <button class="nav-btn" data-view="shareholders">
+                <span class="nav-icon">◉</span> 股东权益
+            </button>
+            <button class="nav-btn" data-view="funds">
+                <span class="nav-icon">◇</span> 基金动态
+            </button>
+            <button class="nav-btn" data-view="about">
+                <span class="nav-icon">◆</span> 关于我们
+            </button>
+        </div>
+        <div class="nav-right">
+            <button class="admin-toggle" id="admin-toggle">
+                <span class="admin-icon">⚙</span> 管理后台
+            </button>
+            <div class="nav-time" id="nav-time"></div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Dashboard View -->
+        <section id="view-dashboard" class="view active">
+            <div class="dashboard-grid">
+                <!-- Top Stats Row -->
+                <div class="stats-row">
+                    <div class="stat-card glass-card glow-border" data-delay="0">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-label">总资产规模</div>
+                        <div class="stat-value" id="total-asset">¥0.00</div>
+                        <div class="stat-change positive">↑ 稳步增长中</div>
+                    </div>
+                    <div class="stat-card glass-card glow-border" data-delay="100">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-label">股东人数</div>
+                        <div class="stat-value" id="total-shareholders">0</div>
+                        <div class="stat-change positive">核心合伙人</div>
+                    </div>
+                    <div class="stat-card glass-card glow-border" data-delay="200">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-label">持有基金数</div>
+                        <div class="stat-value" id="total-funds">0</div>
+                        <div class="stat-change">多元化配置</div>
+                    </div>
+                    <div class="stat-card glass-card glow-border" data-delay="300">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-label">今日收益率</div>
+                        <div class="stat-value" id="daily-return">+0.00%</div>
+                        <div class="stat-change positive">今日盈利</div>
+                    </div>
+                </div>
+
+                <!-- Main Chart Area -->
+                <div class="chart-section glass-card glow-border">
+                    <div class="card-header">
+                        <h3>📈 资产净值走势</h3>
+                        <div class="chart-controls">
+                            <button class="chart-btn active" data-range="7">7天</button>
+                            <button class="chart-btn" data-range="30">30天</button>
+                            <button class="chart-btn" data-range="90">全部</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="nav-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Equity Distribution -->
+                <div class="equity-section glass-card glow-border">
+                    <div class="card-header">
+                        <h3>🎯 股权分布</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="equity-chart"></canvas>
+                    </div>
+                    <div id="equity-legend" class="equity-legend"></div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="activity-section glass-card glow-border">
+                    <div class="card-header">
+                        <h3>⚡ 实时动态</h3>
+                    </div>
+                    <div class="activity-list" id="activity-list">
+                    </div>
+                </div>
+
+                <!-- Fund Performance Cards -->
+                <div class="fund-cards-section glass-card glow-border">
+                    <div class="card-header">
+                        <h3>🏆 基金表现排行</h3>
+                    </div>
+                    <div class="fund-rank-list" id="fund-rank-list">
+                    </div>
+                </div>
+
+                <!-- Fun Fact -->
+                <div class="fun-fact glass-card glow-border">
+                    <div class="card-header">
+                        <h3>🐾 每日猫言猫语</h3>
+                    </div>
+                    <div class="fun-fact-content" id="fun-fact">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shareholders View -->
+        <section id="view-shareholders" class="view">
+            <div class="shareholders-grid">
+                <div class="sh-header glass-card glow-border">
+                    <h2>👥 股东权益总览</h2>
+                    <p class="sh-subtitle">每一位伙伴都是黑白猫资本不可或缺的力量</p>
+                </div>
+                <div class="sh-portfolio glass-card glow-border">
+                    <div class="card-header">
+                        <h3>💎 持仓全景</h3>
+                    </div>
+                    <div class="sh-cards" id="sh-cards">
+                    </div>
+                </div>
+                <div class="sh-ranking glass-card glow-border">
+                    <div class="card-header">
+                        <h3>🏅 投资排行榜</h3>
+                    </div>
+                    <div class="ranking-list" id="ranking-list">
+                    </div>
+                </div>
+                <div class="sh-chart-section glass-card glow-border">
+                    <div class="card-header">
+                        <h3>📊 占股比例</h3>
+                    </div>
+                    <div class="chart-container large-chart">
+                        <canvas id="sh-pie-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Funds View -->
+        <section id="view-funds" class="view">
+            <div class="funds-grid">
+                <div class="funds-header glass-card glow-border">
+                    <h2>📊 基金动态中心</h2>
+                    <p class="funds-subtitle">追踪每一笔投资的脉搏</p>
+                </div>
+                <div class="funds-overview glass-card glow-border">
+                    <div class="card-header">
+                        <h3>📈 基金净值走势对比</h3>
+                    </div>
+                    <div class="chart-container large-chart">
+                        <canvas id="funds-comparison-chart"></canvas>
+                    </div>
+                </div>
+                <div class="funds-detail-list" id="funds-detail-list">
+                </div>
+            </div>
+        </section>
+
+        <!-- About View -->
+        <section id="view-about" class="view">
+            <div class="about-grid">
+                <div class="about-hero glass-card glow-border">
+                    <div class="about-hero-content">
+                        <div class="about-logo-big">🐱🐈‍⬛</div>
+                        <h1 class="about-title">黑白猫资本</h1>
+                        <p class="about-tagline">"不管黑猫白猫，能赚钱就是好猫"</p>
+                        <p class="about-tagline-sub">—— 但其实赚不赚钱都无所谓，开心就好</p>
+                    </div>
+                </div>
+                <div class="about-story glass-card glow-border">
+                    <div class="card-header">
+                        <h3>📖 创始故事</h3>
+                    </div>
+                    <div class="about-text">
+                        <p>主播在跪求了多位资本家后，终于筹得了30块钱，这笔钱是我们的起点，但我相信，它远不是终点！</p>
+                        <p>这笔巨资有一个响亮的名字：<strong>黑白猫资本</strong>。</p>
+                        <p><strong>"不管黑猫白猫，能赚钱就是好猫"——虽然赚不赚钱真的无所谓。</strong></p>
+                        <p>我们的投资理念非常朴素：<strong>重在参与，贵在开心</strong>。我们不追求跑赢大盘，只要不全亏完就行！</p>
+                    </div>
+                </div>
+                <div class="about-mission glass-card glow-border">
+                    <div class="card-header">
+                        <h3>🎯 企业使命</h3>
+                    </div>
+                    <div class="about-text">
+                        <div class="mission-item">
+                            <span class="mission-icon">🌟</span>
+                            <div>
+                                <strong>让每一分钱都有归属感</strong>
+                                <p>哪怕只有10块钱，也要让它觉得自己是一笔正经投资</p>
+                            </div>
+                        </div>
+                        <div class="mission-item">
+                            <span class="mission-icon">🤝</span>
+                            <div>
+                                <strong>用投资增进友谊</strong>
+                                <p>没有什么比一起亏钱更能加深革命友谊的了</p>
+                            </div>
+                        </div>
+                        <div class="mission-item">
+                            <span class="mission-icon">🎉</span>
+                            <div>
+                                <strong>让理财变得有趣</strong>
+                                <p>我们证明了，十几块钱也能玩出资本运作的感觉</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-values glass-card glow-border">
+                    <div class="card-header">
+                        <h3>💡 核心价值观</h3>
+                    </div>
+                    <div class="values-grid">
+                        <div class="value-item">
+                            <div class="value-icon">🎯</div>
+                            <div class="value-title">精准</div>
+                            <div class="value-desc">精准地把钱花在基金上，而不是奶茶上</div>
+                        </div>
+                        <div class="value-item">
+                            <div class="value-icon">🔄</div>
+                            <div class="value-title">透明</div>
+                            <div class="value-desc">每一分钱的去向都清清楚楚，明明白白</div>
+                        </div>
+                        <div class="value-item">
+                            <div class="value-icon">🤝</div>
+                            <div class="value-title">共赢</div>
+                            <div class="value-desc">一起赚一起亏，有福同享有难同当</div>
+                        </div>
+                        <div class="value-item">
+                            <div class="value-icon">🐱</div>
+                            <div class="value-title">快乐</div>
+                            <div class="value-desc">赚钱是手段，快乐才是目的</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-disclaimer glass-card glow-border">
+                    <div class="card-header">
+                        <h3>⚠️ 免责声明</h3>
+                    </div>
+                    <div class="about-text">
+                        <p class="disclaimer-text">黑白猫资本的一切投资行为纯属朋友间的趣味理财实验。我们不提供任何投资建议，不承诺任何收益，不对任何亏损负责。如果我们的网站让你产生了"我也想投资"的冲动，请先冷静一下，喝杯水，然后去找正规的金融机构。</p>
+                        <p class="disclaimer-text">本项目仅供技术展示和朋友间娱乐使用。如有雷同，纯属巧合。</p>
+                        <p class="disclaimer-text last">🐱 两只猫，一群朋友，十几块钱，一个梦想。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Admin Password Modal -->
+    <div id="admin-password-modal" class="admin-password-modal">
+        <div class="admin-backdrop"></div>
+        <div class="password-modal-content">
+            <div class="password-modal-icon">🔐</div>
+            <h3>管理后台验证</h3>
+            <p>请输入管理员密码以继续</p>
+            <input type="password" id="admin-password-input" class="admin-input password-input" placeholder="请输入密码..." autofocus>
+            <div id="password-error" class="password-error">密码错误，请重试</div>
+            <div class="password-modal-btns">
+                <button class="admin-btn" id="password-cancel">取消</button>
+                <button class="admin-btn primary" id="password-submit">验证</button>
+            </div>
+            <div class="password-hint">提示: 默认密码为 <code>bwcat2024</code></div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Overlay -->
+    <div id="admin-panel" class="admin-panel">
+        <div class="admin-backdrop"></div>
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2>⚙ 管理后台</h2>
+                <button class="admin-close" id="admin-close">✕</button>
+            </div>
+            <div class="admin-tabs">
+                <button class="admin-tab active" data-tab="manage-shareholders">👥 股东管理</button>
+                <button class="admin-tab" data-tab="manage-funds">📊 基金管理</button>
+                <button class="admin-tab" data-tab="manage-performance">📈 业绩录入</button>
+                <button class="admin-tab" data-tab="manage-settings">⚙ 设置</button>
+            </div>
+
+            <!-- Shareholder Management -->
+            <div class="admin-tab-content active" id="tab-manage-shareholders">
+                <div class="admin-section">
+                    <h3>添加/修改股东</h3>
+                    <div class="admin-form">
+                        <div class="form-row">
+                            <label>股东昵称</label>
+                            <input type="text" id="sh-name" placeholder="输入股东昵称..." class="admin-input">
+                        </div>
+                        <div class="form-row">
+                            <label>投资金额 (元)</label>
+                            <input type="number" id="sh-amount" placeholder="输入投资金额..." class="admin-input" step="0.01">
+                        </div>
+                        <div class="form-row">
+                            <label>头像 Emoji</label>
+                            <input type="text" id="sh-avatar" placeholder="选一个Emoji当头像" class="admin-input" maxlength="4" value="😎">
+                        </div>
+                        <button class="admin-btn primary" id="save-shareholder">💾 保存股东</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h3>现有股东列表</h3>
+                    <div class="admin-list" id="admin-sh-list">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fund Management -->
+            <div class="admin-tab-content" id="tab-manage-funds">
+                <div class="admin-section">
+                    <h3>添加/修改基金</h3>
+                    <div class="admin-form">
+                        <div class="form-row">
+                            <label>基金名称</label>
+                            <input type="text" id="fund-name" placeholder="输入基金名称..." class="admin-input">
+                        </div>
+                        <div class="form-row">
+                            <label>基金代码</label>
+                            <input type="text" id="fund-code" placeholder="如: 000001" class="admin-input">
+                        </div>
+                        <div class="form-row">
+                            <label>基金类型</label>
+                            <select id="fund-type" class="admin-input">
+                                <option value="股票型">股票型</option>
+                                <option value="混合型">混合型</option>
+                                <option value="债券型">债券型</option>
+                                <option value="指数型">指数型</option>
+                                <option value="货币型">货币型</option>
+                                <option value="QDII">QDII</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>持有份额</label>
+                            <input type="number" id="fund-shares" placeholder="持有份数..." class="admin-input" step="0.01">
+                        </div>
+                        <div class="form-row">
+                            <label>成本净值</label>
+                            <input type="number" id="fund-cost-nav" placeholder="买入时净值..." class="admin-input" step="0.0001">
+                        </div>
+                        <div class="form-row">
+                            <label>当前净值</label>
+                            <input type="number" id="fund-current-nav" placeholder="当前净值..." class="admin-input" step="0.0001">
+                        </div>
+                        <button class="admin-btn primary" id="save-fund">💾 保存基金</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h3>现有基金列表</h3>
+                    <div class="admin-list" id="admin-fund-list">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Entry -->
+            <div class="admin-tab-content" id="tab-manage-performance">
+                <div class="admin-section">
+                    <h3>录入每日业绩</h3>
+                    <div class="admin-form">
+                        <div class="form-row">
+                            <label>日期</label>
+                            <input type="date" id="perf-date" class="admin-input">
+                        </div>
+                        <div class="form-row">
+                            <label>选择基金</label>
+                            <select id="perf-fund" class="admin-input">
+                                <option value="">-- 请选择基金 --</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>当日净值</label>
+                            <input type="number" id="perf-nav" placeholder="当日净值..." class="admin-input" step="0.0001">
+                        </div>
+                        <button class="admin-btn primary" id="save-performance">💾 保存业绩</button>
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h3>历史业绩记录</h3>
+                    <div class="admin-list" id="admin-perf-list">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="admin-tab-content" id="tab-manage-settings">
+                <div class="admin-section">
+                    <h3>数据管理</h3>
+                    <div class="admin-form">
+                        <button class="admin-btn" id="export-data">📤 导出数据</button>
+                        <button class="admin-btn" id="import-data">📥 导入数据</button>
+                        <button class="admin-btn danger" id="reset-data">🗑 重置所有数据</button>
+                        <input type="file" id="import-file" accept=".json" style="display:none">
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h3>系统信息</h3>
+                    <div class="admin-info">
+                        <p>🏢 黑白猫资本 智能驾驶舱 v1.0</p>
+                        <p>📦 数据存储方式: LocalStorage</p>
+                        <p>🐱 项目状态: 运行中</p>
+                        <p>📅 当前时间: <span id="sys-time"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
