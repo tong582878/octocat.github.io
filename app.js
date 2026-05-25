@@ -3,16 +3,17 @@
    ============================================ */
 
 // ============================================
-// 默认数据
+// 默认数据（仅在 data.js 不存在时使用）
 // ============================================
-const DEFAULT_SHAREHOLDERS = [
+const FALLBACK_SHAREHOLDERS = [
+    { id: 'sh_001', name: '猫哥', amount: 15.00, avatar: '🐱', joinDate: '2024-03-15' },
     { id: 'sh_002', name: '大橘', amount: 12.50, avatar: '🐱', joinDate: '2024-03-15' },
     { id: 'sh_003', name: '布偶', amount: 18.00, avatar: '🐈', joinDate: '2024-03-15' },
     { id: 'sh_004', name: '狸花', amount: 10.00, avatar: '🐈‍⬛', joinDate: '2024-03-16' },
     { id: 'sh_005', name: '蓝猫', amount: 13.88, avatar: '😼', joinDate: '2024-03-16' },
 ];
 
-const DEFAULT_FUNDS = [
+const FALLBACK_FUNDS = [
     { id: 'f_001', name: '天弘余额宝货币', code: '000198', type: '货币型', shares: 15.00, costNav: 1.0000, currentNav: 1.0023 },
     { id: 'f_002', name: '易方达蓝筹精选混合', code: '005827', type: '混合型', shares: 3.20, costNav: 2.1500, currentNav: 2.0834 },
     { id: 'f_003', name: '招商中证白酒指数', code: '161725', type: '指数型', shares: 2.50, costNav: 1.3200, currentNav: 1.2756 },
@@ -49,6 +50,24 @@ class DataManager {
     }
 
     load() {
+        // 优先从 data.js (window.BWCAT_DATA) 读取
+        if (window.BWCAT_DATA) {
+            const remoteData = window.BWCAT_DATA;
+            this.shareholders = remoteData.shareholders || [];
+            this.funds = remoteData.funds || [];
+            this.history = remoteData.history || [];
+            // 如果 data.js 没有历史数据，自动从当前基金生成
+            if (this.history.length === 0 && this.funds.length > 0) {
+                this.history = generateHistoricalData(this.funds);
+            }
+            // 同步到 localStorage 并记录远程版本号
+            this._remoteVersion = remoteData.version || 0;
+            this._remoteLastUpdate = remoteData.lastUpdate || '';
+            this.save();
+            return;
+        }
+
+        // 其次从 localStorage 读取
         const saved = localStorage.getItem('bwcat_data');
         if (saved) {
             const data = JSON.parse(saved);
@@ -56,9 +75,10 @@ class DataManager {
             this.funds = data.funds || [];
             this.history = data.history || [];
         } else {
-            this.shareholders = [...DEFAULT_SHAREHOLDERS];
-            this.funds = [...DEFAULT_FUNDS];
-            this.history = generateHistoricalData(DEFAULT_FUNDS);
+            // 最后使用内置默认数据
+            this.shareholders = [...FALLBACK_SHAREHOLDERS];
+            this.funds = [...FALLBACK_FUNDS];
+            this.history = generateHistoricalData(FALLBACK_FUNDS);
             this.save();
         }
     }
@@ -116,7 +136,6 @@ class DataManager {
             this.history.sort((a, b) => a.date.localeCompare(b.date));
         }
         dayEntry.funds[fundId] = parseFloat(nav);
-        // Update fund current nav
         const fund = this.funds.find(f => f.id === fundId);
         if (fund) fund.currentNav = parseFloat(nav);
         this.save();
@@ -150,9 +169,17 @@ class DataManager {
     }
 
     reset() {
-        this.shareholders = [...DEFAULT_SHAREHOLDERS];
-        this.funds = [...DEFAULT_FUNDS];
-        this.history = generateHistoricalData(DEFAULT_FUNDS);
+        if (window.BWCAT_DATA) {
+            this.shareholders = [...window.BWCAT_DATA.shareholders];
+            this.funds = [...window.BWCAT_DATA.funds];
+            this.history = window.BWCAT_DATA.history && window.BWCAT_DATA.history.length > 0
+                ? [...window.BWCAT_DATA.history]
+                : generateHistoricalData(window.BWCAT_DATA.funds);
+        } else {
+            this.shareholders = [...FALLBACK_SHAREHOLDERS];
+            this.funds = [...FALLBACK_FUNDS];
+            this.history = generateHistoricalData(FALLBACK_FUNDS);
+        }
         this.save();
     }
 
@@ -162,6 +189,32 @@ class DataManager {
             funds: this.funds,
             history: this.history,
         }, null, 2);
+    }
+
+    // 导出为 data.js 文件（用于提交到 GitHub 全网同步）
+    exportDataJS() {
+        const now = new Date().toISOString();
+        const currentVersion = (window.BWCAT_DATA && window.BWCAT_DATA.version) || 0;
+        const newVersion = currentVersion + 1;
+
+        const data = {
+            shareholders: this.shareholders,
+            funds: this.funds,
+            history: this.history,
+            lastUpdate: now,
+            version: newVersion,
+        };
+
+        const content = `/* ============================================
+   黑白猫资本 - 数据源文件
+   自动生成于: ${now}
+   版本号: v${newVersion}
+   ============================================ */
+
+window.BWCAT_DATA = ${JSON.stringify(data, null, 4)};
+`;
+
+        return { content, version: newVersion, lastUpdate: now };
     }
 
     importData(jsonStr) {
@@ -519,7 +572,6 @@ function initFundsComparisonChart() {
 
     const datasets = dm.funds.map((fund, i) => {
         const values = history.map(h => h.funds[fund.id] || fund.currentNav);
-        // Normalize to percentage change from first value
         const base = values[0] || 1;
         const normalized = values.map(v => ((v / base - 1) * 100).toFixed(2));
         return {
@@ -584,11 +636,9 @@ function initFundsComparisonChart() {
 // Render Functions
 // ============================================
 function renderDashboard() {
-    // Stats
     const totalAsset = dm.getTotalAsset();
     const costAsset = dm.getCostAsset();
     const dailyReturn = dm.getDailyReturn();
-    const totalReturn = costAsset > 0 ? ((totalAsset - costAsset) / costAsset * 100) : 0;
 
     document.getElementById('total-asset').textContent = `¥${totalAsset.toFixed(2)}`;
     document.getElementById('total-shareholders').textContent = dm.shareholders.length;
@@ -599,25 +649,34 @@ function renderDashboard() {
     returnEl.parentElement.querySelector('.stat-change').className = `stat-change ${dailyReturn >= 0 ? 'positive' : ''}`;
     returnEl.parentElement.querySelector('.stat-change').textContent = dailyReturn >= 0 ? '↑ 今日盈利' : '↓ 今日亏损';
 
-    // Charts
     initNavChart(7);
     initEquityChart();
-
-    // Activity feed
     renderActivityFeed();
-
-    // Fund rank
     renderFundRank();
-
-    // Fun fact
     renderFunFact();
+
+    // 显示数据同步状态
+    renderSyncStatus();
+}
+
+function renderSyncStatus() {
+    const syncEl = document.getElementById('sync-status');
+    if (!syncEl) return;
+    if (window.BWCAT_DATA) {
+        const update = window.BWCAT_DATA.lastUpdate ? new Date(window.BWCAT_DATA.lastUpdate).toLocaleString('zh-CN') : '未知';
+        const ver = window.BWCAT_DATA.version || '?';
+        syncEl.innerHTML = `☁ 数据源: data.js (v${ver}) · 更新于 ${update}`;
+        syncEl.style.display = 'block';
+    } else {
+        syncEl.innerHTML = '⚠ 数据源: 本地浏览器 (请部署 data.js 实现全网同步)';
+        syncEl.style.display = 'block';
+    }
 }
 
 function renderActivityFeed() {
     const list = document.getElementById('activity-list');
     const activities = [];
 
-    // Generate activities from data
     dm.shareholders.forEach(sh => {
         activities.push({
             icon: sh.avatar,
@@ -635,7 +694,6 @@ function renderActivityFeed() {
         });
     });
 
-    // Sort by time descending
     activities.sort((a, b) => b.time.localeCompare(a.time));
 
     list.innerHTML = activities.map(a => `
@@ -699,7 +757,6 @@ function renderFunFact() {
 }
 
 function renderShareholdersView() {
-    // Cards
     const total = dm.shareholders.reduce((s, sh) => s + sh.amount, 0);
     const totalAsset = dm.getTotalAsset();
     const totalCost = dm.getCostAsset();
@@ -722,7 +779,6 @@ function renderShareholdersView() {
         `;
     }).join('');
 
-    // Ranking
     const sorted = [...dm.shareholders].sort((a, b) => b.amount - a.amount);
     const medals = ['🥇', '🥈', '🥉'];
     const rankEl = document.getElementById('ranking-list');
@@ -746,13 +802,8 @@ function renderFundsView() {
         const pnl = fund.currentNav - fund.costNav;
         const pnlPct = (pnl / fund.costNav * 100);
         const marketValue = fund.shares * fund.currentNav;
-        const costValue = fund.shares * fund.costNav;
-        const profit = marketValue - costValue;
+        const profit = marketValue - fund.shares * fund.costNav;
         const isPositive = pnl >= 0;
-
-        // Generate mini chart data from history
-        const recentHistory = dm.history.slice(-7);
-        const miniData = recentHistory.map(h => h.funds[fund.id] || fund.currentNav);
 
         return `
             <div class="fund-detail-card">
@@ -798,7 +849,6 @@ function renderFundsView() {
         `;
     }).join('');
 
-    // Init mini charts
     dm.funds.forEach(fund => {
         const canvas = document.getElementById(`mini-${fund.id}`);
         if (!canvas) return;
@@ -806,10 +856,6 @@ function renderFundsView() {
 
         const recentHistory = dm.history.slice(-7);
         const values = recentHistory.map(h => h.funds[fund.id] || fund.currentNav);
-        const labels = recentHistory.map(h => {
-            const d = new Date(h.date);
-            return `${d.getMonth() + 1}/${d.getDate()}`;
-        });
 
         const isPositive = values[values.length - 1] >= values[0];
         const color = isPositive ? '#22c55e' : '#ef4444';
@@ -822,7 +868,10 @@ function renderFundsView() {
         miniCharts[fund.id] = new Chart(ctx, {
             type: 'line',
             data: {
-                labels,
+                labels: recentHistory.map(h => {
+                    const d = new Date(h.date);
+                    return `${d.getMonth() + 1}/${d.getDate()}`;
+                }),
                 datasets: [{
                     data: values,
                     borderColor: color,
@@ -851,7 +900,7 @@ function renderFundsView() {
 // ============================================
 // Admin Panel
 // ============================================
-const ADMIN_PASSWORD = 'cat';
+const ADMIN_PASSWORD = 'bwcat2024';
 let isAdminAuthenticated = false;
 
 function showPasswordModal() {
@@ -880,10 +929,9 @@ function verifyPassword() {
         document.getElementById('password-error').classList.add('visible');
         document.getElementById('admin-password-input').value = '';
         document.getElementById('admin-password-input').focus();
-        // Shake animation
         const modal = document.querySelector('.password-modal-content');
         modal.style.animation = 'none';
-        modal.offsetHeight; // trigger reflow
+        modal.offsetHeight;
         modal.style.animation = 'passwordShake 0.4s ease';
     }
 }
@@ -908,7 +956,6 @@ function initAdmin() {
         isAdminAuthenticated = false;
     });
 
-    // Close admin panel backdrop
     document.querySelectorAll('.admin-panel > .admin-backdrop').forEach(el => {
         el.addEventListener('click', () => {
             document.getElementById('admin-panel').classList.remove('open');
@@ -916,7 +963,6 @@ function initAdmin() {
         });
     });
 
-    // Close password modal backdrop
     document.querySelectorAll('.admin-password-modal > .admin-backdrop').forEach(el => {
         el.addEventListener('click', hidePasswordModal);
     });
@@ -991,7 +1037,7 @@ function initAdmin() {
         renderAll();
     });
 
-    // Export
+    // Export JSON
     document.getElementById('export-data').addEventListener('click', () => {
         const data = dm.exportData();
         const blob = new Blob([data], { type: 'application/json' });
@@ -1001,6 +1047,31 @@ function initAdmin() {
         a.download = `bwcat_capital_${new Date().toISOString().split('T')[0]}.json`;
         a.click();
         URL.revokeObjectURL(url);
+    });
+
+    // Export data.js (全网同步)
+    document.getElementById('export-datajs').addEventListener('click', () => {
+        const { content, version, lastUpdate } = dm.exportDataJS();
+        const blob = new Blob([content], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'data.js';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        // Show success message
+        const syncInfo = document.getElementById('sync-info');
+        if (syncInfo) {
+            syncInfo.innerHTML = `✅ data.js 已导出 (v${version})！<br>
+                <strong>同步步骤：</strong><br>
+                1. 用下载的 data.js 替换项目中的 data.js<br>
+                2. git add data.js && git commit -m "update data v${version}"<br>
+                3. git push origin main<br>
+                4. GitHub Pages 会自动更新，全网生效 🎉<br>
+                <span style="font-size:0.7rem;color:var(--text-dim)">更新于 ${new Date(lastUpdate).toLocaleString('zh-CN')}</span>`;
+            syncInfo.style.display = 'block';
+        }
     });
 
     // Import
@@ -1039,7 +1110,6 @@ function initAdmin() {
 }
 
 function renderAdminLists() {
-    // Shareholder list
     const shList = document.getElementById('admin-sh-list');
     shList.innerHTML = dm.shareholders.map(sh => `
         <div class="admin-list-item">
@@ -1057,7 +1127,6 @@ function renderAdminLists() {
         </div>
     `).join('');
 
-    // Fund list
     const fundList = document.getElementById('admin-fund-list');
     fundList.innerHTML = dm.funds.map(fund => {
         const pnl = ((fund.currentNav - fund.costNav) / fund.costNav * 100);
@@ -1077,7 +1146,6 @@ function renderAdminLists() {
         `;
     }).join('');
 
-    // Performance list
     const perfList = document.getElementById('admin-perf-list');
     const recentPerfs = dm.history.slice(-10).reverse();
     perfList.innerHTML = recentPerfs.map(h => {
@@ -1098,7 +1166,6 @@ function renderAdminLists() {
         }).join('');
     }).join('');
 
-    // Fund select for performance
     const perfSelect = document.getElementById('perf-fund');
     perfSelect.innerHTML = '<option value="">-- 请选择基金 --</option>' +
         dm.funds.map(f => `<option value="${f.id}">${f.name} (${f.code})</option>`).join('');
@@ -1110,7 +1177,6 @@ window.editShareholder = function(id) {
     document.getElementById('sh-name').value = sh.name;
     document.getElementById('sh-amount').value = sh.amount;
     document.getElementById('sh-avatar').value = sh.avatar;
-    // Scroll to form
     document.getElementById('sh-name').focus();
 };
 
@@ -1154,7 +1220,6 @@ function initNavigation() {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('view-' + view).classList.add('active');
 
-            // Re-render charts for the view
             if (view === 'dashboard') {
                 renderDashboard();
             } else if (view === 'shareholders') {
@@ -1165,7 +1230,6 @@ function initNavigation() {
         });
     });
 
-    // Chart range buttons
     document.querySelectorAll('.chart-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
@@ -1199,30 +1263,20 @@ function renderAll() {
 // Initialize
 // ============================================
 function init() {
-    // Loading screen
     setTimeout(() => {
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('main-nav').classList.add('visible');
     }, 2200);
 
-    // 3D Background
     init3DBackground();
-
-    // Navigation
     initNavigation();
-
-    // Admin
     initAdmin();
-
-    // Clock
     updateClock();
     setInterval(updateClock, 1000);
 
-    // Render
     setTimeout(() => {
         renderAll();
     }, 2300);
 }
 
-// Start
 document.addEventListener('DOMContentLoaded', init);

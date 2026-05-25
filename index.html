@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="data.js"></script>
 </head>
 <body>
     <!-- 3D Background -->
@@ -135,6 +136,19 @@
                     <div class="fund-rank-list" id="fund-rank-list">
                     </div>
                 </div>
+
+                <!-- Sync Status -->
+                <div class="sync-status" id="sync-status" style="
+                    text-align: center;
+                    font-size: 0.75rem;
+                    color: var(--text-dim);
+                    font-family: var(--font-mono);
+                    padding: 0.6rem 1rem;
+                    background: rgba(255,255,255,0.02);
+                    border-radius: 8px;
+                    border: 1px solid rgba(255,255,255,0.04);
+                    display: none;
+                "></div>
 
                 <!-- Fun Fact -->
                 <div class="fun-fact glass-card glow-border">
@@ -427,12 +441,27 @@
             <!-- Settings -->
             <div class="admin-tab-content" id="tab-manage-settings">
                 <div class="admin-section">
-                    <h3>数据管理</h3>
+                    <h3>📤 导出数据</h3>
                     <div class="admin-form">
-                        <button class="admin-btn" id="export-data">📤 导出数据</button>
-                        <button class="admin-btn" id="import-data">📥 导入数据</button>
+                        <button class="admin-btn primary" id="export-datajs">☁ 导出 data.js（全网同步）</button>
+                        <button class="admin-btn" id="export-data">📦 导出 JSON 备份</button>
+                    </div>
+                    <div id="sync-info" class="sync-info" style="display:none; margin-top:1rem; padding:0.8rem; border-radius:8px; background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); font-size:0.8rem; color:var(--text-secondary); line-height:1.8;"></div>
+                </div>
+                <div class="admin-section">
+                    <h3>📥 导入/重置</h3>
+                    <div class="admin-form">
+                        <button class="admin-btn" id="import-data">📥 导入 JSON 数据</button>
                         <button class="admin-btn danger" id="reset-data">🗑 重置所有数据</button>
                         <input type="file" id="import-file" accept=".json" style="display:none">
+                    </div>
+                </div>
+                <div class="admin-section">
+                    <h3>💡 数据同步说明</h3>
+                    <div class="sync-guide" style="font-size:0.8rem; color:var(--text-secondary); line-height:1.8; padding:0.8rem; background:rgba(255,255,255,0.02); border-radius:8px; border:1px solid rgba(255,255,255,0.04);">
+                        <p>📌 <strong>全网同步原理：</strong>数据存储在 <code style="color:var(--primary);background:rgba(0,240,255,0.1);padding:1px 4px;border-radius:3px;">data.js</code> 文件中，所有访客共用同一份数据。</p>
+                        <p>📌 <strong>更新流程：</strong>在后台修改数据 → 导出 data.js → 替换项目文件 → 推送到 GitHub → 全网自动更新。</p>
+                        <p>📌 <strong>本地缓存：</strong>浏览器会缓存数据以加速加载，推送新版本后用户刷新即可获取最新数据。</p>
                     </div>
                 </div>
                 <div class="admin-section">
