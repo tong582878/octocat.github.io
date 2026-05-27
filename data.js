@@ -33,7 +33,7 @@ window.BWCAT_DATA = {
             "name": "广发新兴成长灵活配置混合C",
             "code": "018291",
             "type": "股票型",
-            "shares": 3.7432,
+            "shares": 3.68,
             "costNav": 2.7174,
             "currentNav": 2.7072,
             "id": "f_1779711507255"
@@ -42,7 +42,7 @@ window.BWCAT_DATA = {
             "name": "华夏中证电网设备主题ETF联接A",
             "code": "025856",
             "type": "股票型",
-            "shares": 0.6991,
+            "shares": 0.71,
             "costNav": 1.4085,
             "currentNav": 1.4058,
             "id": "f_1779711544697"
@@ -51,7 +51,7 @@ window.BWCAT_DATA = {
             "name": "中航机遇领航混合C",
             "code": "018957",
             "type": "股票型",
-            "shares": 1.9476,
+            "shares": 1.87,
             "costNav": 5.3476,
             "currentNav": 5.3653,
             "id": "f_1779711571977"
@@ -60,7 +60,7 @@ window.BWCAT_DATA = {
             "name": "东吴新趋势价值线灵活配置混合",
             "code": "001322",
             "type": "股票型",
-            "shares": 2.1831,
+            "shares": 2.10,
             "costNav": 4.7619,
             "currentNav": 4.7307,
             "id": "f_1779711597431"
