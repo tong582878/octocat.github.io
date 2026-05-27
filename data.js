@@ -34,7 +34,7 @@ window.BWCAT_DATA = {
             "code": "018291",
             "type": "股票型",
             "shares": 3.7432,
-            "costNav": 2.6715,
+            "costNav": 2.7174,
             "currentNav": 2.7072,
             "id": "f_1779711507255"
         },
@@ -43,7 +43,7 @@ window.BWCAT_DATA = {
             "code": "025856",
             "type": "股票型",
             "shares": 0.6991,
-            "costNav": 1.4304,
+            "costNav": 1.4085,
             "currentNav": 1.4058,
             "id": "f_1779711544697"
         },
@@ -52,7 +52,7 @@ window.BWCAT_DATA = {
             "code": "018957",
             "type": "股票型",
             "shares": 1.9476,
-            "costNav": 5.1345,
+            "costNav": 5.3476,
             "currentNav": 5.3653,
             "id": "f_1779711571977"
         },
@@ -61,7 +61,7 @@ window.BWCAT_DATA = {
             "code": "001322",
             "type": "股票型",
             "shares": 2.1831,
-            "costNav": 4.5806,
+            "costNav": 4.7619,
             "currentNav": 4.7307,
             "id": "f_1779711597431"
         }
